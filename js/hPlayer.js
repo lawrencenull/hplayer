@@ -1,546 +1,1211 @@
 /*
- * hPlayer v 1.0.1 VLC Plugin  detection and embed
- * More information about the script and how to use - http://hmscript.net/hplayer/
- * Created ZpVs
- * Copyright (c) 2013 ZpVs
+ * hPlayer Extend v 2.0.0 VLC and ACE Plugin  detection and embed
+ * More information about the script and how to use - http://hplayer.hmscript.net
+ * Event Horizon is used to handle keyboard events.
  *
- * Released under the MIT License:
- * http://www.opensource.org/licenses/mit-license.php
+ * Created ZpVs and JD9496
+ * support[at]hmscript.net
+ * 3dhotboy[at]gmail.com
+ *
+ * Copyright (c) 2013 ZpVs and JD9496
+ * Released under the License:
+ * MIT and GPL licenses.
  */
-var hPlayer = function() {
-    var hOptions = {
-        defaults:{
-                continer: 'hPlayer',
-                    type: 'http',
-                  stream: '',
-                   width: 936 +'px',
-                  height: 464 +'px',
-                    loop: false,
-              windowless: false,
-                 toolbar: false,
-                autoplay: false,
-              background: '#000000',
-                  plugin: {
-                        Name: 'VLC Multimedia Plug-in',
-                     ActiveX: 'VideoLAN.VLCPlugin.2',
-                    MimeType: 'application/x-vlc-plugin',
-                     classid: 'clsid:9BE31822-FDAD-461B-AD51-BE1D1C159921'
+var hPlayer_Ext = function () {
+    var a = {
+        __agent: function () {
+            var c = !! top.execScript;
+            if (c) {
+                return "ie"
+            } else {
+                return "non-ie"
+            }
+        },
+        __api: function () {
+            var c = {
+                status: {
+                    0: "",
+                    1: "Getting data the video",
+                    2: "Buffering stream",
+                    3: "Playback media file",
+                    4: "Pause",
+                    5: "Playback is stopped",
+                    6: "Ending of playing",
+                    7: "Error from playback"
                 },
-                ad_state: false,
-                 ad_link: '',
-                 ad_time: 10000,
-               ad_isView: false,
-                 browser: 'non-ie'
-        },
-        init:{}
-    };
-    var hPlugin = {
-        options:{
-            configBox: false,
-            isPlaying: false,
-              isPause: false,
-               volume: 50,
-                 mute: false,
-         isFullscreen: false,
-                state: null
-        },
-        play:function() {
-            var pBut = $('#playerControl-0');
-            if(this.options.isPause){
-                pBut.removeClass('ico-pause');
-                pBut.addClass('ico-play');
-                this.options.isPause = false;
-            }
-            else{
-                this.options.isPause = true;
-                pBut.removeClass('ico-play');
-                pBut.addClass('ico-pause');
-            }
-            if(this.options.isPlaying){
-                hApi.togglePause();
-            }
-            else{
-                hApi.togglePlay();
-            }
-        },
-        stop:function() {
-            var pBut = $('#playerControl-0');
-            hApi.toggleStop();
-            if(this.options.isPause){
-                pBut.removeClass('ico-pause');
-                pBut.addClass('ico-play');
-                this.options.isPause = false;
-            }
-        },
-        mute:function() {
-            var vBut = $('#playerControl-2');
-            if(this.options.mute){
-                vBut.removeClass('ico-volume-off');
-                vBut.addClass( 'ico-volume-up' );
-                this.options.mute = false;
-            }
-            else{
-                this.options.mute = true;
-                vBut.removeClass('ico-volume-up');
-                vBut.addClass( 'ico-volume-off' );
-            }
-            hApi.toggleMute();
-        },
-        fullscreen:function() {
-            if(hOptions.init.windowless){
-                fullScreen(document.getElementById(hInterface.n_main));
-            }
-            else{
-                 hApi.toggleFullscreen();
-            }
-        },
-        config:function() {
-            if(hPlugin.options.configBox){
-                hPlugin.options.configBox = false;
-                $('#' + hInterface.n_infoBox).remove();
-                $('#' + hInterface.n_plugin).removeClass('infoBox-overlay');
-            }
-            else{
-                hPlugin.options.configBox = true;
-                $('#' + hInterface.n_plugin).addClass('infoBox-overlay');
-                $('#' + hInterface.n_screen).append('<div id="' + hInterface.n_infoBox + '"></div>');
-                $('#' + hInterface.n_infoBox).append('<div class="infoBox-inner"><h2>Настроки воспроизведения</h2>' +
-                    '<p>Cоотношение сторон для видео экрана</p><span  class ="SettingsRatio"></span>' +
-                    '<p>Режимы устранения чересстрочности</p><span  class ="SettingsDeint"></span>' +
-                    '<p>Аудио каналы</p><span  class ="SettingsAudio"></span>' +
-                    '</div>');
-                var videoRatio = 'SettingsRatio';
-                this.createButtonSettings(videoRatio, '1:1', 'btn-menu', function(event) {hPlugin.ratio('1:1');});
-                this.createButtonSettings(videoRatio, '4:3', 'btn-menu', function(event) {hPlugin.ratio('4:3');});
-                this.createButtonSettings(videoRatio, '16:9', 'btn-menu', function(event) {hPlugin.ratio('16:9');});
-                this.createButtonSettings(videoRatio, '16:10', 'btn-menu', function(event) {hPlugin.ratio('16:10');});
-                this.createButtonSettings(videoRatio, '221:100', 'btn-menu', function(event) {hPlugin.ratio('221:100');});
-                this.createButtonSettings(videoRatio, '5:4', 'btn-menu', function(event) {hPlugin.ratio('5:4');});
-                var videoDeinter = 'SettingsDeint';
-                this.createButtonSettings(videoDeinter, 'blend', 'btn-menu', function(event) {hPlugin.deinterlace('blend');});
-                this.createButtonSettings(videoDeinter, 'bob', 'btn-menu', function(event) {hPlugin.deinterlace('bob');});
-                this.createButtonSettings(videoDeinter, 'linear', 'btn-menu', function(event) {hPlugin.deinterlace('linear');});
-                this.createButtonSettings(videoDeinter, 'mean', 'btn-menu', function(event) {hPlugin.deinterlace('mean');});
-                this.createButtonSettings(videoDeinter, 'yadif', 'btn-menu', function(event) {hPlugin.deinterlace('yadif');});
-                this.createButtonSettings(videoDeinter, 'yadif2x', 'btn-menu', function(event) {hPlugin.deinterlace('yadif2x');});
-                this.createButtonSettings(videoDeinter, 'discard', 'btn-menu', function(event) {hPlugin.deinterlace('discard');});
-                var audioChannel = 'SettingsAudio';
-                this.createButtonSettings(audioChannel, 'stereo', 'btn-menu', function(event) {hPlugin.audioChannel('1');});
-                this.createButtonSettings(audioChannel, 'r :stereo', 'btn-menu', function(event) {hPlugin.audioChannel('2');});
-                this.createButtonSettings(audioChannel, 'left', 'btn-menu', function(event) {hPlugin.audioChannel('3');});
-                this.createButtonSettings(audioChannel, 'right', 'btn-menu', function(event) {hPlugin.audioChannel('4');});
-                this.createButtonSettings(audioChannel, 'dolby', 'btn-menu', function(event) {hPlugin.audioChannel('5');});
-            }
-        },
-        ratio:function(param) {
-            hApi.changeAspectRatio(param);
-        },
-        deinterlace:function(d_type) {
-            hApi.changeDeinterlace(d_type);
-        },
-        audioChannel:function(number) {
-            hApi.changeAudioChannel(number);
-        },
-        infoBox:function(types) {
-            var _interface = interfacePart(dOptions.screen.continer);
-            if(dOptions.player.infoBox){
-                dOptions.player.infoBox = false;
-                $('#' + _interface.infoBox).remove();
-                $('#' + _interface.plugin)[0].width = dOptions.screen.width;
-                $('#' + _interface.plugin)[0].height = dOptions.screen.height;
-                $('#' + _interface.plugin).removeClass( 'infoBox-overlay' );
-            }
-            else{
-                dOptions.player.infoBox = true;
-                $('#' + _interface.screen).append('<div id="' + _interface.infoBox + '"></div>');
-                $('#' + _interface.infoBox).append(initInfoBox(types));
-                $('#' + _interface.plugin).addClass( 'infoBox-overlay' );
-                $('#' + _interface.infoBox).append(InfoBoxInterface(types));
-
-            }
-
-        },
-        volumeSlider:function() {
-            var _volume = $('#player-volume');
-            _volume.slider({
-                range: "min",
-                min: 0,
-                max: 100,
-                value: 50,
-                animate: true,
-                start: function(event,ui) {
+                pl_list: [],
+                plugin: $("#" + b.init._interface.continer + "-plugin")[0],
+                __getPlugin: function () {
+                    if (typeof ($("#" + b.init._interface.continer + "-plugin")[0]) == "object") {
+                        return true
+                    }
                 },
-                slide: function(event, ui) {
-                    var value = _volume.slider('value');
+                __getPluginState: function () {
+                    return (b.init._script.type == "ace") ? this.plugin.version : this.plugin.VersionInfo
                 },
-                stop: function(event,ui) {
-                    hApi.changeVolume(ui.value);
+                __getPlaylist: function () {
+                    var j = b.init._player.stream;
+                    if (j.indexOf(".m3u") == -1) {
+                        if (b.init._ad.state && !b.init._ad.isView && b.init._script.type != "ace") {
+                            this.pl_list[0] = [b.init._ad.link, b.init._ad.link]
+                        } else {
+                            this.pl_list[0] = ["", ""]
+                        }
+                        this.pl_list[1] = [b.init._player.stream, b.init._player.stream]
+                    } else {
+                        var f;
+                        try {
+                            f = new ActiveXObject("Msxml2.XMLHTTP")
+                        } catch (k) {
+                            try {
+                                f = new ActiveXObject("Microsoft.XMLHTTP")
+                            } catch (h) {
+                                f = false
+                            }
+                        }
+                        if (!f && typeof XMLHttpRequest != "undefined") {
+                            f = new XMLHttpRequest()
+                        }
+                        f.open("GET", b.init._script.api_url + "" + b.init._player.stream, false);
+                        f.send(null);
+                        var l = f.responseText.split("#EXTINF:-1,");
+                        for (var d = 1; d < l.length; d++) {
+                            if (!b.init._ad.isView) {
+                                this.pl_list[0] = [b.init._ad.link, b.init._ad.link]
+                            } else {
+                                this.pl_list[0] = []
+                            }
+                            var g = l[d].split("\n");
+                            this.pl_list[d] = [g[0], g[1].trim()]
+                        }
+                    }
+                    return this.pl_list
+                },
+                __controlMethod: function (h, e) {
+                    if (!this.plugin) {
+                        setTimeout(this.__controlMethod(h, e), 100)
+                    } else {
+                        switch (h) {
+                        case "play":
+                            var d;
+                            if (e != null) {
+                                d = e;
+                                b.init._ad.isView = true
+                            } else {
+                                d = this.__getPlaylist()
+                            }
+                            var f = "";
+                            if (b.init._script.type == "ace") {
+                                this.plugin.playlistClear();
+                                this.plugin.playlistLoadPlayer(d[1][1]);
+                                this.plugin.playlistPlay()
+                            } else {
+                                this.plugin.playlist.items.clear();
+                                var g = 0;
+                                if (b.init._ad.isView) {
+                                    g = 1
+                                }
+                                for (g; g < d.length; g++) {
+                                    if (b.init._script.browser == "ie") {
+                                        this.plugin.playlist.add(d[g][1])
+                                    } else {
+                                        this.plugin.playlist.add(d[g][1], d[g][0], f)
+                                    }
+                                }
+                                this.plugin.playlist.play()
+                            } if (!b.init._ad.isView) {
+                                setTimeout("hPlayer_Ext.api().checkAds()", b.init._ad.time)
+                            }
+                            break;
+                        case "forward":
+                            (b.init._script.type == "ace") ? this.plugin.playlistNext() : this.plugin.playlist.next();
+                            break;
+                        case "backward":
+                            (b.init._script.type == "ace") ? this.plugin.playlistPrev() : this.plugin.playlist.prev();
+                            break;
+                        case "stop":
+                            if (b.init._script.type == "ace") {
+                                this.plugin.playlistStop(true)
+                            } else {
+                                this.plugin.playlist.clear();
+                                this.plugin.playlist.stop()
+                            }
+                            break;
+                        case "pause":
+                            (b.init._script.type == "ace") ? this.plugin.playlistTogglePause() : this.plugin.playlist.togglePause();
+                            break;
+                        case "fullscreen":
+                            (b.init._script.type == "ace") ? this.plugin.setDisabled(false) : "";
+                            if (b.init._script.browser == "ie") {
+                                (b.init._script.type == "ace") ? this.plugin.videoToggleFullscreen() : this.plugin.video.toggleFullscreen()
+                            } else {
+                                a.__fullscreen(b.init._interface.continer)
+                            }
+                            break;
+                        case "playlist":
+                            break;
+                        case "mute":
+                            (b.init._script.type == "ace") ? this.plugin.audioToggleMute() : this.plugin.audio.toggleMute();
+                            break;
+                        case "ratio":
+                            (b.init._script.type == "ace") ? this.plugin.videoAspectRatio = e : this.plugin.video.aspectRatio = e;
+                            break;
+                        case "deinterlace":
+                            (b.init._script.type == "ace") ? this.plugin.deinterlaceMode = e : this.plugin.video.deinterlace.enable(e);
+                            break;
+                        case "changevolume":
+                            (b.init._script.type == "ace") ? this.plugin.audioVolume = e : this.plugin.audio.volume = e;
+                            break;
+                        case "audioChannel":
+                            (b.init._script.type == "ace") ? this.plugin.audioChannel = parseInt(e) : this.plugin.audio.channel = parseInt(e);
+                            break
+                        }
+                    }
+                },
+                __checker: function (e, g) {
+                    if (!a.__api().__getPlugin()) {
+                        return false
+                    }
+                    if (!a.__api().__getPluginState()) {
+                        this.statusText('<p style="color: red;">PLUGIN NOT FOUND FROM PAGE</p>');
+                        return false
+                    }
+                    switch (e) {
+                    case "start":
+                        this.__checker("stop", null);
+                        this.statusCheckTimer = setInterval('hPlayer_Ext.api().__checker("checking",null)', 100);
+                        break;
+                    case "stop":
+                        clearTimeout(this.statusCheckTimer);
+                        break;
+                    case "checking":
+                        var d;
+                        (b.init._script.type == "ace") ? d = this.plugin.state : d = this.plugin.input.state;
+                        switch (d) {
+                        case 2:
+                            if (b.init._script.type == "ace") {
+                                this.fullscreenWidth();
+                                this.statusText(this.status[d]);
+                                this.plugin.setDisabled(true);
+                                $("." + b.init._interface.continer + "-playerMediaInfo").html(a.__playTime() + " / " + a.__playTime("end"))
+                            } else {
+                                this.statusText(this.status[d])
+                            }
+                            break;
+                        case 3:
+                        case 4:
+                            this.fullscreenWidth();
+                            if (d == 3 && !b.init._ad.isView && b.init._ad.state) {
+                                this.statusText("advertising clip")
+                            } else {
+                                this.statusText(this.status[d]);
+                                $("." + b.init._interface.continer + "-playerMediaInfo").html(a.__playTime() + " / " + a.__playTime("end"))
+                            }
+                            break;
+                        case 6:
+                            $(".ico-pause").addClass("ico-play");
+                            $(".ico-pause").removeClass("ico-pause");
+                            b.init._script.isPause = false;
+                            this.plugin.width = "1px";
+                            this.plugin.height = "1px";
+                            this.statusText(this.status[d]);
+                            break;
+                        case 7:
+                            break;
+                        default:
+                            (b.init._script.type == "ace") ? this.plugin.setDisabled(false) : "";
+                            this.statusText(this.status[d]);
+                            this.plugin.width = "1px";
+                            this.plugin.height = "1px";
+                            if (b.init._player.autoplay) {
+                                $(".ico-play").addClass("ico-pause");
+                                $(".ico-play").removeClass("ico-play");
+                                b.init._script.isPause = true;
+                                b.init._player.autoplay = false;
+                                this.__controlMethod("play")
+                            }
+                        }
+                        var f;
+                        (b.init._script.type == "ace") ? f = this.plugin.audioMute : f = this.plugin.audio.mute;
+                        if (f) {
+                            $(".ico-volume-up").addClass("ico-volume-off");
+                            $(".ico-volume-up").removeClass("ico-volume-up")
+                        } else {
+                            $(".ico-volume-off").addClass("ico-volume-up");
+                            $(".ico-volume-off").removeClass("ico-volume-off")
+                        }
+                        break
+                    }
+                },
+                checkAds: function () {
+                    var d;
+                    (b.init._script.type == "ace") ? d = this.plugin.state : d = this.plugin.input.state;
+                    if (b.init._ad.state && !b.init._ad.isView && d != 5) {
+                        a.__inf("Advertising has been viewed ", !b.init._ad.isView, "i");
+                        b.init._ad.isView = true;
+                        (b.init._script.type == "ace") ? "" : this.__controlMethod("forward");
+                        (b.init._script.type == "ace") ? this.plugin.playlistRemoveItem(0) : this.plugin.playlist.items.remove(0)
+                    }
+                },
+                fullscreenWidth: function () {
+                    if (b.init.isFullscreen) {
+                        this.plugin.width = $("#" + b.init._interface.continer).width() - 3;
+                        this.plugin.height = $("#" + b.init._interface.continer).height() - $("#" + b.init._interface.continer + "-toolbar").height() - 6
+                    } else {
+                        this.plugin.width = b.init._interface.width;
+                        this.plugin.height = b.init._interface.height
+                    }
+                },
+                statusText: function (d) {
+                    $("." + b.init._interface.continer + "-playerInfo").html("");
+                    $("." + b.init._interface.continer + "-playerInfo").html(d)
+                }
+            };
+            return c
+        },
+        __inf: function (e, d, c) {
+            switch (c) {
+            case "s":
+                b.init._script.debug ? console.log('Value "' + e + '" set in (' + d + ")") : "";
+                break;
+            case "e":
+                b.init._script.debug ? console.warn("Value " + e + " ignored as not used") : "";
+                break;
+            case "i":
+                b.init._script.debug ? console.info(e + d) : "";
+                break
+            }
+        },
+        __interface: function (c) {
+            var l = {
+                buttons: {
+                    backward: {
+                        access: false,
+                        d_class: b.init._interface.continer + "-playerControl",
+                        txt: "Backward",
+                        icon: "ico-backward",
+                        event: function () {
+                            a.__control("backward")
+                        }
+                    },
+                    play: {
+                        access: false,
+                        d_class: b.init._interface.continer + "-playerControl",
+                        txt: "Play / Pause",
+                        icon: "ico-play",
+                        event: function () {
+                            a.__control("play")
+                        }
+                    },
+                    forward: {
+                        access: false,
+                        d_class: b.init._interface.continer + "-playerControl",
+                        txt: "Forward",
+                        icon: "ico-forward",
+                        event: function () {
+                            a.__control("forward")
+                        }
+                    },
+                    fullscreen: {
+                        access: false,
+                        d_class: b.init._interface.continer + "-playerConfig",
+                        txt: "Fullscreen",
+                        icon: "ico-fullscreen",
+                        event: function () {
+                            a.__control("fullscreen")
+                        }
+                    },
+                    stop: {
+                        access: false,
+                        d_class: b.init._interface.continer + "-playerControl",
+                        txt: "Stop",
+                        icon: "ico-stop",
+                        event: function () {
+                            a.__control("stop")
+                        }
+                    },
+                    mute: {
+                        access: false,
+                        d_class: b.init._interface.continer + "-playerControl",
+                        txt: "Volume",
+                        icon: "ico-volume-up",
+                        event: function () {
+                            a.__control("mute")
+                        }
+                    },
+                    playlist: {
+                        access: false,
+                        d_class: b.init._interface.continer + "-playerConfig",
+                        txt: "Playlist",
+                        icon: "ico-playlist",
+                        event: function () {
+                            a.__control("playlist")
+                        }
+                    },
+                    config: {
+                        access: false,
+                        d_class: b.init._interface.continer + "-playerConfig",
+                        txt: "Settings",
+                        icon: "ico-cogs",
+                        event: function () {
+                            a.__control("config")
+                        }
+                    }
+                },
+                parts: {
+                    main: {
+                        access: true,
+                        box: c,
+                        jbox: $("#" + c)
+                    },
+                    screen: {
+                        access: true,
+                        box: c + "-screen",
+                        jbox: $("#" + c + "-screen")
+                    },
+                    plugin: {
+                        access: true,
+                        box: c + "-plugin",
+                        jbox: $("#" + c + "-plugin")
+                    },
+                    toolbar: {
+                        access: true,
+                        box: c + "-toolbar",
+                        jbox: $("#" + c + "-toolbar")
+                    }
+                }
+            };
+            $("#" + b.init._interface.continer).addClass(b.init._script.type);
+            for (var e in l.parts) {
+                switch (e) {
+                case "screen":
+                    if (l.parts[e].access) {
+                        $("#" + l.parts.main.box).append('<div id="' + l.parts[e].box + '"></div>');
+                        if (b.init._player.thumbnail != "") {
+                            $("#" + l.parts[e].box).attr("style", "background: transparent url(" + b.init._player.thumbnail + ") no-repeat center center")
+                        }
+                    }
+                    break;
+                case "toolbar":
+                    if (b.init._script.type == "vcam") {
+                        l.parts.toolbar.access = false;
+                        b.init._interface.width = "100%";
+                        b.init._interface.height = "99%"
+                    }
+                    if (l.parts[e].access) {
+                        $("#" + l.parts.main.box).append('<div id="' + l.parts[e].box + '"></div>');
+                        var d;
+                        switch (b.init._script.type) {
+                        case "ace":
+                            d = '<div class="' + b.init._interface.continer + '-playerControl"></div><div class="' + b.init._interface.continer + '-playerVolume"></div><div class="' + b.init._interface.continer + '-playerMediaInfo"></div><div class="' + b.init._interface.continer + '-playerInfo"></div><div class="' + b.init._interface.continer + '-playerConfig"></div>';
+                            b.init._script.buttons = b.init._script.buttons + ":play:stop:config:mute:fullscreen";
+                            break;
+                        case "base":
+                            d = '<div class="' + b.init._interface.continer + '-playerControl"></div><div class="' + b.init._interface.continer + '-playerVolume"></div><div class="' + b.init._interface.continer + '-playerMediaInfo"></div><div class="' + b.init._interface.continer + '-playerInfo"></div><div class="' + b.init._interface.continer + '-playerConfig"></div>';
+                            b.init._script.buttons = b.init._script.buttons + ":play:stop:config:mute:fullscreen";
+                            break;
+                        case "vcam":
+                            break;
+                        case "http":
+                            d = '<div class="' + b.init._interface.continer + '-playerInfo"></div>';
+                            b.init._script.buttons = "";
+                            break
+                        }
+                        var j = b.init._script.buttons.split(":");
+                        for (var f = 0; f < j.length; f++) {
+                            if (j[f] != "") {
+                                l.buttons[j[f]].access = true
+                            }
+                        }
+                    }
+                    break;
+                case "plugin":
+                    if (l.parts[e].access) {
+                        $("#" + l.parts.screen.box).append('<div id="' + l.parts[e].box + '"></div>')
+                    }
+                    break;
+                default:
+                    l.parts[e].jbox.html("")
+                }
+            }
+            var k = $("#" + l.parts.toolbar.box);
+            k.append(d);
+            for (var g in l.buttons) {
+                var h = l.buttons[g];
+                if (h.access) {
+                    this.__interfaceButton(h.d_class, h.txt, h.icon, h.event)
+                }
+            }
+            $("." + b.init._interface.continer + "-playerVolume").append('<div id="' + b.init._interface.continer + '-player-volume"></div>');
+            a.__volumeSlider()
+        },
+        __interfaceButton: function (f, h, c, e) {
+            var g = $("." + f);
+            var i = f + "-" + g[0].childNodes.length;
+            var d = '<div id="' + i + '" class="btn-player ' + c + '" title="' + h + '"></div>';
+            g.append(d);
+            if (e) {
+                $("#" + i).bind("click", {
+                    doing: this.__api()
+                }, e)
+            }
+        },
+        __interfaceButtonSettings: function (g, e, c, f) {
+            var h = $("." + g);
+            var i = g + "-" + h[0].childNodes.length;
+            var d = '<div id="' + i + '" class="' + c + ' btn-default" title="' + e + '">' + e + "</div>";
+            h.append(d);
+            if (f) {
+                $("#" + i).bind("click", {
+                    doing: this.__api()
+                }, f)
+            }
+        },
+        __keyboard: function () {
+            var c = (function () {
+                var e = {};
+                var d = function (g) {
+                    this.initedBy = g || "EventHorizon Core"
+                };
+                var f = d.prototype;
+                f.add = function (j, k, g, i) {
+                    var h = this.genId();
+                    e[h] = {
+                        event: j,
+                        callback: k,
+                        phase: (g) ? g : false,
+                        stage: i || 1
+                    };
+                    document.addEventListener(e[h]["event"], e[h]["callback"], e[h]["phase"]);
+                    return h
+                };
+                f.del = function (g) {
+                    document.removeEventListener(e[g]["event"], e[g]["callback"], e[g]["phase"]);
+                    delete e[g]
+                };
+                f.stage = function (g, h) {
+                    out: switch (h) {
+                    case (0):
+                        if (e[g] !== 0) {
+                            e[g].stage = 0;
+                            document.removeEventListener(e[g]["event"], e[g]["callback"], e[g]["phase"])
+                        }
+                        break;
+                    case (1):
+                        if (e[g] !== 1) {
+                            document.addEventListener(e[g]["event"], e[g]["callback"], e[g]["phase"]);
+                            e[g].stage = 1
+                        }
+                        break;
+                    default:
+                        if (e[g].stage) {
+                            document.addEventListener(e[g]["event"], e[g]["callback"], e[g]["phase"]);
+                            e[g].stage = 1
+                        } else {
+                            document.removeEventListener(e[g]["event"], e[g]["callback"], e[g]["phase"]);
+                            e[g].stage = 0
+                        }
+                        break out
+                    }
+                };
+                f.init = function () {
+                    var g = new EventHorizon(this);
+                    e.treats = e.treats || {};
+                    e.treats[this.genId()] = g;
+                    return g
+                };
+                f.insert = function (j, h) {
+                    for (var g in j) {
+                        this[g] = (this[g]) ? ((h) ? ((j[g].clone) ? j[g].clone() : j[g]) : this[g]) : ((j[g].clone) ? j[g].clone() : j[g])
+                    }
+                };
+                f.genId = function () {
+                    var j = "",
+                        k = "qwertyuiopasdfghjklzxcvbnm741028963";
+                    for (var h = 0; h < 25; h++) {
+                        j += k[parseInt(Math.random() * 31)]
+                    }
+                    return j
+                };
+                f.checkMySelf = function () {
+                    return (this.checkMySelf) ? true : false
+                };
+                return new d()
+            })();
+            c.insert({
+                keyCallbacks: {
+                    17: {
+                        recall: "/38/40/",
+                        38: function () {
+                            var e = (b.init._script.type == "ace") ? a.__api().plugin.audioVolume : a.__api().plugin.audio.volume;
+                            if (e !== 200) {
+                                var d = (e < 195) ? e + 5 : (e + (200 - e));
+                                a.__control("changevolume", d);
+                                $("#" + b.init._interface.continer + "-player-volume").slider("value", d)
+                            }
+                        },
+                        40: function () {
+                            var e = (b.init._script.type == "ace") ? a.__api().plugin.audioVolume : a.__api().plugin.audio.volume;
+                            if (e !== 0) {
+                                var d = (e > 5) ? e - 5 : e - (5 - e);
+                                a.__control("changevolume", d);
+                                $("#" + b.init._interface.continer + "-player-volume").slider("value", d)
+                            }
+                        },
+                        67: function () {
+                            a.__control("config")
+                        },
+                        39: function () {
+                            a.__control("forward")
+                        },
+                        37: function () {
+                            a.__control("backward")
+                        },
+                        192: function () {
+                            a.__control("mute")
+                        }
+                    },
+                    18: {
+                        recall: "",
+                        13: function () {
+                            a.__control("fullscreen")
+                        },
+                        83: function () {
+                            a.__control("stop")
+                        },
+                        80: function () {
+                            a.__control("playlist")
+                        }
+                    },
+                    onekey: {
+                        recall: "",
+                        32: function () {
+                            a.__control("play")
+                        },
+                        27: function () {
+                            b.init.isFullscreen = false
+                        }
+                    }
+                },
+                blockade: "/17/18/13/27/32/38/40/",
+                startEventsStage: function (h) {
+                    c.stage(c.ku, 1);
+                    c.stage(c.kd, 1);
+                    if (c.blockade.indexOf("/" + h.which + "/") >= 0) {
+                        h.preventDefault()
+                    }
+                    var d = c.keyCallbacks;
+                    if (c.callWay.length > 0) {
+                        var g = d;
+                        for (var f = 0; f < c.callWay.length; f++) {
+                            g = (h.which === c.callWay[f]) ? g : g[c.callWay[f]]
+                        }
+                        if (c.callWay[c.callWay.length - 1] !== h.which) {
+                            c.callWay.push(h.which)
+                        }
+                        if (g[h.which]) {
+                            if (g.recall) {
+                                if (g.recall.indexOf("/" + h.which + "/") < 0) {
+                                    c.stage(c.kd, 0)
+                                }
+                            }
+                            if (g[h.which] instanceof Function) {
+                                g[h.which]()
+                            }
+                        }
+                    } else {
+                        if (d[h.which]) {
+                            c.callWay.push(h.which)
+                        } else {
+                            if (d.onekey[h.which]) {
+                                if (d.onekey.recall.indexOf("/" + h.which + "/") < 0) {
+                                    c.stage(c.kd, 0)
+                                }
+                                if (d.onekey[h.which] instanceof Function) {
+                                    d.onekey[h.which]()
+                                }
+                            }
+                        }
+                    }
+                },
+                stopEventsStage: function (d) {
+                    if (c.callWay.length > 0) {
+                        while (("/" + c.callWay.join("/") + "/").indexOf(d.which) >= 0) {
+                            c.callWay.pop()
+                        }
+                        c.stage(c.ku, 1)
+                    } else {
+                        c.stage(c.ku, 0)
+                    }
+                    c.stage(c.kd, 1)
+                },
+                callWay: [],
+                keyboardEventsOn: function () {
+                    c.kd = c.add("keydown", c.startEventsStage);
+                    c.ku = c.add("keyup", c.stopEventsStage);
+                    c.stage(c.ku, 0)
+                },
+                keyboardEventsOff: function () {
+                    c.del(c.kd);
+                    c.del(c.ku)
                 }
             });
+            return c
         },
-        createButton:function(box, title, cls, handler) {
-            var inElement = $('.' + box);
-                   var id = box + '-' + inElement[0].childNodes.length;
-                  var btn = '<div id="' + id +'" class="btn-player '+cls+'" title="'+ title +'"></div>';
-            inElement.append(btn);
-            if (handler) {
-                $('#' + id).bind('click', {doing: hApi}, handler);
+        __control: function (e, h) {
+            if (!a.__api().__getPluginState()) {
+                return false
+            }
+            this.__inf("For the plugin called event: " + e, "", "i");
+            var c = b.init._script;
+            var g = $("#" + b.init._interface.continer);
+            switch (e) {
+            case "play":
+                if (c.isPause) {
+                    g.find(".ico-pause").addClass("ico-play");
+                    g.find(".ico-pause").removeClass("ico-pause");
+                    c.isPause = false;
+                    this.__api().__controlMethod("pause")
+                } else {
+                    c.isPause = true;
+                    g.find(".ico-play").addClass("ico-pause");
+                    g.find(".ico-play").removeClass("ico-play");
+                    this.__api().__controlMethod("play")
+                }
+                break;
+            case "stop":
+                if (c.isPause) {
+                    g.find(".ico-pause").addClass("ico-play");
+                    g.find(".ico-pause").removeClass("ico-pause");
+                    c.isPause = false
+                }
+                this.__api().__controlMethod("stop");
+                break;
+            case "mute":
+                if (c.mute) {
+                    g.find(".ico-volume-off").addClass("ico-volume-up");
+                    g.find(".ico-volume-off").removeClass("ico-volume-off");
+                    c.mute = false
+                } else {
+                    c.mute = true;
+                    g.find(".ico-volume-up").addClass("ico-volume-off");
+                    g.find(".ico-volume-up").removeClass("ico-volume-up")
+                }
+                var j = $("#" + b.init._interface.continer + "-player-volume");
+                if (j.slider("value") == "0") {
+                    j.slider("value", b.init._script.volume)
+                } else {
+                    b.init._script.volume = j.slider("value");
+                    j.slider("value", 0)
+                }
+                this.__api().__controlMethod("mute");
+                break;
+            case "fullscreen":
+                if (c.windowless) {} else {
+                    this.__api().__controlMethod("fullscreen")
+                }
+                break;
+            case "config":
+                if (c.configBox) {
+                    c.configBox = false;
+                    $("#" + b.init._interface.continer + "-infoBox").remove();
+                    $("#" + b.init._interface.continer + "-plugin").removeClass("infoBox-overlay")
+                } else {
+                    if (c.playlistBox) {
+                        c.playlistBox = false;
+                        $("#" + b.init._interface.continer + "-infoBox").remove();
+                        $("#" + b.init._interface.continer + "-plugin").removeClass("infoBox-overlay")
+                    }
+                    c.configBox = true;
+                    $("#" + b.init._interface.continer + "-plugin").addClass("infoBox-overlay");
+                    $("#" + b.init._interface.continer + "-screen").append('<div id="' + b.init._interface.continer + '-infoBox"></div>');
+                    $("#" + b.init._interface.continer + "-infoBox").append('<div class="infoBox-inner"><p>Aspect ratio for video screen</p><span class ="SettingsRatio"></span><p>Deinterlacing modes</p><span class ="SettingsDeint"></span><p>Audio channels</p><span class ="SettingsAudio"></span></div>');
+                    var d = "SettingsRatio";
+                    this.__interfaceButtonSettings(d, "1:1", "btn", function (i) {
+                        a.__control("ratio", "1:1")
+                    });
+                    this.__interfaceButtonSettings(d, "4:3", "btn", function (i) {
+                        a.__control("ratio", "4:3")
+                    });
+                    this.__interfaceButtonSettings(d, "16:9", "btn", function (i) {
+                        a.__control("ratio", "16:9")
+                    });
+                    this.__interfaceButtonSettings(d, "16:10", "btn", function (i) {
+                        a.__control("ratio", "16:10")
+                    });
+                    this.__interfaceButtonSettings(d, "221:100", "btn", function (i) {
+                        a.__control("ratio", "221:100")
+                    });
+                    this.__interfaceButtonSettings(d, "5:4", "btn", function (i) {
+                        a.__control("ratio", "5:4")
+                    });
+                    var k = "SettingsDeint";
+                    this.__interfaceButtonSettings(k, "blend", "btn", function (i) {
+                        a.__control("deinterlace", "blend")
+                    });
+                    this.__interfaceButtonSettings(k, "bob", "btn", function (i) {
+                        a.__control("deinterlace", "bob")
+                    });
+                    this.__interfaceButtonSettings(k, "linear", "btn", function (i) {
+                        a.__control("deinterlace", "linear")
+                    });
+                    this.__interfaceButtonSettings(k, "mean", "btn", function (i) {
+                        a.__control("deinterlace", "mean")
+                    });
+                    this.__interfaceButtonSettings(k, "yadif", "btn", function (i) {
+                        a.__control("deinterlace", "yadif")
+                    });
+                    this.__interfaceButtonSettings(k, "yadif2x", "btn", function (i) {
+                        a.__control("deinterlace", "yadif2x")
+                    });
+                    this.__interfaceButtonSettings(k, "discard", "btn", function (i) {
+                        a.__control("deinterlace", "discard")
+                    });
+                    var m = "SettingsAudio";
+                    this.__interfaceButtonSettings(m, "stereo", "btn", function (i) {
+                        a.__control("audioChannel", "1")
+                    });
+                    this.__interfaceButtonSettings(m, "r :stereo", "btn", function (i) {
+                        a.__control("audioChannel", "2")
+                    });
+                    this.__interfaceButtonSettings(m, "left", "btn", function (i) {
+                        a.__control("audioChannel", "3")
+                    });
+                    this.__interfaceButtonSettings(m, "right", "btn", function (i) {
+                        a.__control("audioChannel", "4")
+                    });
+                    this.__interfaceButtonSettings(m, "dolby", "btn", function (i) {
+                        a.__control("audioChannel", "5")
+                    })
+                }
+                break;
+            case "playlist":
+                if (c.playlistBox) {
+                    c.playlistBox = false;
+                    $("#" + b.init._interface.continer + "-infoBox").remove();
+                    $("#" + b.init._interface.continer + "-plugin").removeClass("infoBox-overlay")
+                } else {
+                    if (c.configBox) {
+                        c.configBox = false;
+                        $("#" + b.init._interface.continer + "-infoBox").remove();
+                        $("#" + b.init._interface.continer + "-plugin").removeClass("infoBox-overlay")
+                    }
+                    c.playlistBox = true;
+                    $("#" + b.init._interface.continer + "-plugin").addClass("infoBox-overlay");
+                    $("#" + b.init._interface.continer + "-screen").append('<div id="' + b.init._interface.continer + '-infoBox"></div>');
+                    $("#" + b.init._interface.continer + "-infoBox").append('<ul class="infoBox-inner"></ul>');
+                    var f = 0;
+                    var l = a.__api().__getPlaylist();
+                    for (f; f < l.length; f++) {
+                        if (f == 0) {} else {
+                            if (b.init._player.stream != "") {
+                                $(".infoBox-inner").append('<li data-play="' + l[f][1] + '">' + l[f][0] + "</li>")
+                            }
+                        }
+                    }
+                    $(".infoBox-inner li").bind("click", function () {
+                        var i = [];
+                        if (!b.init._ad.isView && b.init._ad.state) {
+                            i[0] = [b.init._ad.link, b.init._ad.link]
+                        }
+                        i[1] = [this.getAttribute("data-play"), this.getAttribute("data-play")];
+                        a.__api().__controlMethod("play", i)
+                    })
+                }
+                this.__api().__controlMethod("playlist");
+                break;
+            case "backward":
+                this.__api().__controlMethod("backward");
+                break;
+            case "forward":
+                this.__api().__controlMethod("forward");
+                break;
+            case "ratio":
+                this.__api().__controlMethod("ratio", h);
+                break;
+            case "deinterlace":
+                this.__api().__controlMethod("deinterlace", h);
+                break;
+            case "changevolume":
+                this.__api().__controlMethod("changevolume", h);
+                break;
+            case "audioChannel":
+                this.__api().__controlMethod("audioChannel", h);
+                break
             }
         },
-        createButtonSettings:function(box, html, cls, handler) {
-            var inElement = $('.' + box);
-                   var id = box + '-' + inElement[0].childNodes.length;
-                  var btn = '<div id="' + id +'" class="btn-player '+cls+'" title="'+ html +'">'+ html +'</div>';
-            inElement.append(btn);
-            if (handler) {
-                $('#' + id).bind('click', {doing: hApi}, handler);
+        __player: function () {
+            var h = b.init;
+            var e, g = document.getElementById(h._interface.continer + "-plugin");
+            if (g) {
+                if (b.init._script.browser == "ie") {
+                    var d = "";
+                    var f = "";
+                    d += 'id="' + b.init._interface.continer + '-plugin"';
+                    d += 'bgcolor="' + b.init._interface.background + '"';
+                    f += '<param name="ShowDisplay" value="true" />';
+                    f += '<param name="id" value="' + b.init._interface.continer + '-plugin" />';
+                    f += '<param name="bgcolor" value="' + b.init._interface.background + '" />';
+                    f += '<param name="width" value="' + b.init._interface.width + '" />';
+                    f += '<param name="height" value="' + b.init._interface.height + '" />';
+                    if (b.init._script.type == "ace") {
+                        f += '<embed type="' + b.init._player.ace.MimeType + '"   width="' + b.init._interface.width + '" height="' + b.init._interface.height + '"></embed>';
+                        g.outerHTML = '<object classid="' + b.init._player.ace.classid + '"' + d + f + "</object>"
+                    } else {
+                        d += 'toolbar="false"';
+                        f += '<param name="toolbar" value="false" />';
+                        if (b.init._player.windowless) {
+                            d += 'windowless="' + b.init._interface.windowless + '"';
+                            f += '<param name="windowless" value="' + b.init._interface.windowless + '" />'
+                        }
+                        if (b.init._player.autoloop) {
+                            d += 'loop="' + b.init._interface.autoloop + '"';
+                            f += '<param name="loop" value="' + b.init._interface.autoloop + '" />'
+                        }
+                        f += '<embed type="' + b.init._player.vlc.MimeType + '"   width="' + b.init._interface.width + '" height="' + b.init._interface.height + '"></embed>';
+                        g.outerHTML = '<object classid="' + b.init._player.vlc.classid + '"' + d + f + "</object>"
+                    }
+                    e = document.getElementById(h._interface.continer + "-plugin")
+                } else {
+                    var c = document.createElement("object");
+                    if (b.init._script.type == "ace") {
+                        c.setAttribute("type", b.init._player.ace.MimeType);
+                        c.setAttribute("force", "true");
+                        c.setAttribute("fscontrolsenable", "0");
+                        c.setAttribute("defaultcontrolsforstream", "0");
+                        if (b.init._player.autoplay) {
+                            c.setAttribute("defaultcontrolsforstream", "0")
+                        }
+                    } else {
+                        c.setAttribute("type", b.init._player.vlc.MimeType);
+                        c.setAttribute("toolbar", "false");
+                        c.setAttribute("allowfullscreen", "false");
+                        if (b.init._player.windowless) {
+                            c.setAttribute("windowless", b.init._player.windowless)
+                        }
+                        if (b.init._player.autoloop) {
+                            c.setAttribute("autoloop", b.init._player.autoloop)
+                        }
+                    }
+                    c.setAttribute("id", b.init._interface.continer + "-plugin");
+                    c.setAttribute("bgcolor", b.init._interface.background);
+                    c.setAttribute("width", b.init._interface.width);
+                    c.setAttribute("height", b.init._interface.height);
+                    g.parentNode.replaceChild(c, g);
+                    e = c
+                }
+            }
+            if (!a.__api().__getPluginState()) {
+                return false
+            }
+            a.__inf("Mounted plugin - ", a.__version(), "i");
+            return e
+        },
+        __playTime: function (f) {
+            var g = {
+                video_time: function (i) {
+                    if (i == "end") {
+                        if (b.init._script.type == "ace") {
+                            return $("#" + b.init._interface.continer + "-plugin")[0].inputLength / 1000
+                        } else {
+                            return $("#" + b.init._interface.continer + "-plugin")[0].input.length / 1000
+                        }
+                    } else {
+                        if (b.init._script.type == "ace") {
+                            return $("#" + b.init._interface.continer + "-plugin")[0].inputTime / 1000 + 1
+                        } else {
+                            return $("#" + b.init._interface.continer + "-plugin")[0].input.time / 1000 + 1
+                        }
+                    }
+                },
+                time: function (j, i) {
+                    var k = "" + j;
+                    while (k.length < i) {
+                        k = "0" + k
+                    }
+                    return k
+                }
+            };
+            var e = parseInt(g.video_time(f));
+            var h = e;
+            var d = 0;
+            var c = 0;
+            if (h == 0) {}
+            if (h > 60) {
+                d = Math.floor(h / 60);
+                h = parseInt((h - (d * 60)))
+            }
+            if (h > 3600) {
+                c = Math.floor(d / 60);
+                d = Math.floor(h / 60);
+                h = parseInt((h - (d * 60)))
+            }
+            return g.time(c, 2) + ":" + g.time(d, 2) + ":" + g.time(h, 2)
+        },
+        __volumeSlider: function () {
+            var c = $("#" + b.init._interface.continer + "-player-volume");
+            c.slider({
+                range: "min",
+                min: 0,
+                max: 150,
+                value: 50,
+                animate: true,
+                start: function (d, e) {},
+                slide: function (d, f) {
+                    var e = c.slider("value")
+                },
+                stop: function (d, e) {
+                    a.__control("changevolume", e.value)
+                }
+            })
+        },
+        __fullscreen: function (d) {
+            var c = document.getElementById(d);
+            if (b.init.isFullscreen) {
+                b.init.isFullscreen = false;
+                if (document.cancelFullScreen) {
+                    document.cancelFullScreen()
+                } else {
+                    if (document.mozCancelFullScreen) {
+                        document.mozCancelFullScreen()
+                    } else {
+                        if (document.webkitCancelFullScreen) {
+                            document.webkitCancelFullScreen()
+                        }
+                    }
+                }
+            } else {
+                b.init.isFullscreen = true;
+                if (c.requestFullscreen) {
+                    c.requestFullscreen()
+                } else {
+                    if (c.webkitRequestFullscreen) {
+                        c.webkitRequestFullscreen()
+                    } else {
+                        if (c.mozRequestFullScreen) {
+                            c.mozRequestFullScreen()
+                        }
+                    }
+                }
+            }
+        },
+        __version: function () {
+            var c;
+            if (b.init._script.type == "ace") {
+                c = "ACE Stream plugin " + $("#" + b.init._interface.continer + "-plugin")[0].version
+            } else {
+                c = "VLC plugin " + $("#" + b.init._interface.continer + "-plugin")[0].VersionInfo
+            }
+            return c
+        }
+    };
+    var b = {
+        defaults: {
+            _script: {
+                debug: false,
+                browser: "non-ie",
+                type: "base",
+                buttons: "",
+                api_url: "http://hplayer.hmscript.net/api.php?pl=",
+                mute: false
+            },
+            _player: {
+                vlc: {
+                    Name: "VideoLAN VLC ActiveX Plugin",
+                    ActiveX: "VideoLAN.VLCPlugin.2",
+                    MimeType: "application/x-vlc-plugin",
+                    classid: "clsid:9BE31822-FDAD-461B-AD51-BE1D1C159921"
+                },
+                ace: {
+                    Name: "VLC Multimedia Plug-in",
+                    ActiveX: "VideoLAN.VLCPlugin.2",
+                    MimeType: "application/x-acestream-plugin",
+                    classid: "clsid:79690976-ED6E-403c-BBBA-F8928B5EDE17"
+                },
+                autoplay: false,
+                autoloop: false,
+                windowless: false,
+                thumbnail: "",
+                stream: ""
+            },
+            _interface: {
+                continer: "hPlayer",
+                width: "936px",
+                height: "464px",
+                background: "#000000"
+            },
+            _ad: {
+                state: false,
+                link: "",
+                time: 10000,
+                isView: false
             }
         }
     };
-    var hInterface = {};
-    var hApi = {};
-    function fullScreen(element) {
-        var objects = $('#' + hInterface.n_plugin);
-        if(hPlugin.options.isFullscreen){
-            hPlugin.options.isFullscreen = false;
-            if (document.cancelFullScreen) {
-                document.cancelFullScreen();
-            } else if (document.mozCancelFullScreen) {
-                document.mozCancelFullScreen();
-            } else if (document.webkitCancelFullScreen) {
-                document.webkitCancelFullScreen();
-            }
-            objects[0].width = hOptions.init.width;
-            objects[0].height = hOptions.init.height;
-        }
-        else{
-            hPlugin.options.isFullscreen = true;
-            if (element.requestFullscreen) {
-                element.requestFullscreen();
-            } else if (element.webkitRequestFullscreen) {
-                element.webkitRequestFullscreen();
-            } else if (element.mozRequestFullScreen) {
-                element.mozRequestFullScreen();
-            }
-            if(hPlugin.options.isPlaying){
-                objects[0].width = '100%';
-                objects[0].height = '100%';
-            }
-
-        }
-    }
-    function API() {
-        var doing = {
-            status:{
-                0:'',
-                1:'Поолучение данных видео',
-                2:'Буфферизация потока',
-                3:'Воспроизведение канала',
-                4:'Пауза',
-                5:'Проигрывание остановлено',
-                6:'Окончание проигрывания потока',
-                7:'Ошибка воспроизведения потока'
-            },
-            items:{},
-            set:function(name, value) {
-                this.items[name] = value || null;
-            },
-            del:function(name) {
-                delete this.items[name];
-            },
-            clear:function() {
-                this.items = new Array();
-            },
-            get:function() {
-                var tmp_array = new Array();
-                var debug_str = "";
-                var idx = 0;
-                for (var i in this.items)
-                {
-                    var option_str = ":" + i;
-                    if (this.items[i]) option_str += "=" + this.items[i];
-                    tmp_array[idx] = option_str;
-                    debug_str += option_str + " ";
-                    idx += 1;
-                }
-                if (document.all) return tmp_array;
-                return debug_str;
-            },
-            __getPlugin:function() {
-                return $('#' + hInterface.n_plugin)[0];
-            },
-            togglePlay:function() {
-                var plugin = this.__getPlugin();
-                var _play = hOptions.init.stream;
-                plugin.audio.volume = hPlugin.options.volume;
-                if (!plugin) {
-                    setTimeout(this.togglePlay(), 100);
-                    return false;
-                }
-                else{
-                    var options = this.get();
-                     if(hOptions.init.ad_state){
-                         if(!hOptions.init.ad_isView){
-                             plugin.playlist.add(hOptions.init.ad_link, hOptions.init.ad_link, options);
-                             plugin.playlist.add(_play, _play, options);
-                             hOptions.init.ad_isView = false;
-                             setTimeout('hPlayer.initApi().checkAds()',hOptions.init.ad_time);
-                         }
-                         else{
-                             plugin.playlist.add(_play, _play, options);
-                         }
-                     }
-                     else{
-                            plugin.playlist.add(_play, _play, options);
-                     }
-                    plugin.playlist.play();
-                    hPlugin.options.isPlaying = true;
-                    return true;
-                }
-            },
-            togglePause:function() {
-                var plugin = this.__getPlugin();
-                plugin.playlist.togglePause();
-            },
-            toggleStop:function() {
-                var plugin = this.__getPlugin();
-                hPlugin.options.isPlaying = false;
-                plugin.playlist.stop();
-            },
-            toggleMute:function() {
-                var plugin = this.__getPlugin();
-                var _volume = $('#player-volume');
-                if(_volume.slider("value")== '0'){
-                    _volume.slider("value", hPlugin.options.volume);
-                }
-                else{
-                    hPlugin.options.volume = _volume.slider("value");
-                    _volume.slider("value", 0);
-                }
-                plugin.audio.toggleMute();
-            },
-            toggleFullscreen:function() {
-                var plugin = this.__getPlugin();
-                plugin.video.toggleFullscreen();
-            },
-            changeVolume:function(value) {
-                var plugin = doing.__getPlugin();
-                plugin.audio.volume = value;
-            },
-            changeAspectRatio:function(ratio) {
-                var plugin = this.__getPlugin();
-                plugin.video.aspectRatio = ratio;
-            },
-            changeDeinterlace:function(dein) {
-                var plugin = this.__getPlugin();
-                plugin.video.deinterlace.enable(dein);
-            },
-            changeAudioChannel:function(audio) {
-                var plugin = this.__getPlugin();
-                plugin.audio.channel =  parseInt(audio);
-            },
-            statusCheckStart:function() {
-                this.statusCheckStop();
-                this.statusCheckTimer = setInterval('hPlayer.initApi().statusCheck()', 100);
-            },
-            statusCheckStop:function() {
-                clearTimeout(this.statusCheckTimer);
-            },
-            statusCheck:function() {
-                var plugin = this.__getPlugin();
-                var status =  plugin.input.state;
-                if (status != hPlugin.options.state) {
-                    hPlugin.options.state = status;
-                    this.statusChanged();
-                }
-            },
-            statusChanged:function() {
-                var plugin = this.__getPlugin();
-                var state = hPlugin.options.state;
-                var objects = $('#' + hInterface.n_plugin);
-
-                if (hOptions.init.browser == 'ie') {
-                    objects[0].removeAttribute('style');
-                    objects[0].setAttribute('style','height:0px; width:0px;');
-                }
-                else{
-                    objects[0].width = '0px';
-                    objects[0].height = '0px';
-                }
-
-                if (!state) {
-                    this.statusText(this.status[0]);
-                }
-                else{
-                    this.statusText(this.status[state]);
-                }
-
-                if(state == 3 || state == 4){
-                    if (hOptions.init.browser == 'ie') {
-                        objects[0].setAttribute('style','height:'+ hOptions.init.height +'; width:'+ hOptions.init.width +';');
-                    }
-                    else{
-                        objects[0].width = hOptions.init.width;
-                        objects[0].height = hOptions.init.height;
+    return {
+        init: function (e, c) {
+            var d;
+            b.init = b.defaults;
+            a.__inf("Check the current settings", "", "i");
+            var f = b.init;
+            f._script.browser = a.__agent();
+            a.__inf("Check the browser", "", "i");
+            if (e != null) {
+                a.__inf("Checking for key changes to load and initialize the plugin", "", "i");
+                for (d in e) {
+                    switch (d) {
+                    case "debug":
+                        f._script.debug = e[d];
+                        a.__inf(d, e[d], "s");
+                        break;
+                    case "type":
+                        f._script.type = e[d];
+                        a.__inf(d, e[d], "s");
+                        break;
+                    case "wrapper":
+                        f._interface.continer = e[d];
+                        a.__inf(d, e[d], "s");
+                        break;
+                    case "width":
+                        f._interface.width = e[d];
+                        a.__inf(d, e[d], "s");
+                        break;
+                    case "height":
+                        f._interface.height = e[d];
+                        a.__inf(d, e[d], "s");
+                        break;
+                    case "background":
+                        f._interface.background = e[d];
+                        a.__inf(d, e[d], "s");
+                        break;
+                    case "windowless":
+                        f._player.windowless = e[d];
+                        a.__inf(d, e[d], "s");
+                        break;
+                    case "autoplay":
+                        f._player.autoplay = e[d];
+                        a.__inf(d, e[d], "s");
+                        break;
+                    case "autoloop":
+                        f._player.autoloop = e[d];
+                        a.__inf(d, e[d], "s");
+                        break;
+                    case "stream":
+                        f._player.stream = e[d];
+                        a.__inf(d, e[d], "s");
+                        break;
+                    case "thumbnail":
+                        f._player.thumbnail = e[d];
+                        a.__inf(d, e[d], "s");
+                        break;
+                    case "ads_link":
+                        f._ad.link = e[d];
+                        a.__inf(d, e[d], "s");
+                        break;
+                    case "ads_time":
+                        f._ad.time = e[d];
+                        a.__inf(d, e[d], "s");
+                        break;
+                    case "ads":
+                        f._ad.state = e[d];
+                        a.__inf(d, e[d], "s");
+                        break;
+                    case "buttons":
+                        f._script.buttons = e[d];
+                        a.__inf(d, e[d], "s");
+                        break;
+                    case "api_url":
+                        f._script.buttons = e[d];
+                        a.__inf(d, e[d], "s");
+                        break;
+                    default:
+                        a.__inf(d, e[d], "e")
                     }
                 }
-                if(state == 5 || state == 6 || state == 7){
-                    var pBut = $('#playerControl-0');
-                        pBut.removeClass('ico-pause');
-                        pBut.addClass('ico-play');
-                        hPlugin.options.isPause = false;
-                }
-            },
-            statusText:function(txt) {
-                $('.playerInfo').html(txt);
-                setTimeout('hPlayer.initApi().clearStatusText()',5000);
-            },
-            checkAds:function() {
-                var plugin = this.__getPlugin();
-                if(plugin.playlist.items.count == 2){
-                    if(!hOptions.init.ad_isView){
-                        plugin.playlist.items.remove(0);
-                        hOptions.init.ad_isView = true;
-                        this.togglePlay();
+            } else {
+                a.__inf("Check for key extension to load and initialize the plugin", "", "i");
+                for (d in c) {
+                    switch (d) {
+                    case "debug":
+                        f._script.debug = c[d];
+                        a.__inf(d, c[d], "s");
+                        break;
+                    case "type":
+                        f._script.type = c[d];
+                        a.__inf(d, c[d], "s");
+                        break;
+                    case "wrapper":
+                        f._interface.continer = c[d];
+                        a.__inf(d, c[d], "s");
+                        break;
+                    case "width":
+                        f._interface.width = c[d];
+                        a.__inf(d, c[d], "s");
+                        break;
+                    case "height":
+                        f._interface.height = c[d];
+                        a.__inf(d, c[d], "s");
+                        break;
+                    case "background":
+                        f._interface.background = c[d];
+                        a.__inf(d, c[d], "s");
+                        break;
+                    case "windowless":
+                        f._player.windowless = c[d];
+                        a.__inf(d, c[d], "s");
+                        break;
+                    case "autoplay":
+                        f._player.autoplay = c[d];
+                        a.__inf(d, c[d], "s");
+                        break;
+                    case "autoloop":
+                        f._player.autoloop = c[d];
+                        a.__inf(d, c[d], "s");
+                        break;
+                    case "stream":
+                        f._player.stream = c[d];
+                        a.__inf(d, c[d], "s");
+                        break;
+                    case "thumbnail":
+                        f._player.thumbnail = c[d];
+                        a.__inf(d, c[d], "s");
+                        break;
+                    case "ads_link":
+                        f._ad.link = c[d];
+                        a.__inf(d, c[d], "s");
+                        break;
+                    case "ads_time":
+                        f._ad.time = c[d];
+                        a.__inf(d, c[d], "s");
+                        break;
+                    case "ads":
+                        f._ad.state = c[d];
+                        a.__inf(d, c[d], "s");
+                        break;
+                    case "buttons":
+                        f._script.buttons = c[d];
+                        a.__inf(d, c[d], "s");
+                        break;
+                    case "api_url":
+                        f._script.buttons = c[d];
+                        a.__inf(d, c[d], "s");
+                        break;
+                    default:
+                        a.__inf(d, c[d], "e")
                     }
                 }
-            },
-            clearStatusText:function() {
-                $('.playerInfo').html('');
             }
-        };
-        return doing;
-    }
-    function interfacePart(wrapper) {
-        var hFace = {
-               n_main: wrapper,
-             n_screen: wrapper + '-screen',
-             n_plugin: wrapper + '-plugin',
-            n_infoBox: wrapper + '-infoBox',
-            n_toolbar: wrapper + '-toolbar',
-
-
-               e_main: $('#' + wrapper),
-             e_screen: $('#' + wrapper + '-screen'),
-             e_plugin: $('#' + wrapper + '-plugin'),
-            e_infoBox: $('#' + wrapper + '-infoBox'),
-            e_toolbar: $('#' + wrapper + '-toolbar')
-
-        };
-        return hFace;
-    }
-    return{
-        init:function(hConfig){
-            hConfig != null ? this.initConfiguration(hConfig) : this.initConfiguration(null);
-            this.initApi();
-            hInterface = interfacePart(hOptions.init.continer);
-            this.initInterface();
-            this.initPlugin();
-            hApi.statusCheckStart();
+            a.__interface(f._interface.continer);
+            a.__player();
+            a.__api().__checker("start", null);
+            a.__keyboard().keyboardEventsOn()
         },
-        play:function(hConfig){
-            this.init(hConfig);
-            hPlugin.stop();
-            hPlugin.play();
+        api: function () {
+            return a.__api()
         },
-        initConfiguration:function(config){
-            if(config != null){
-                var dScreen = hOptions.defaults;
-                var iScreen = hOptions.init;
-                config.wrapper ? iScreen.continer =  config.wrapper : iScreen.continer =  dScreen.continer;
-                config.mode ? iScreen.type =  config.mode : iScreen.type =  dScreen.type;
-                config.stream ? iScreen.stream =  config.stream : iScreen.stream =  dScreen.stream;
-                config.width ? iScreen.width =  config.width : iScreen.width =  dScreen.width;
-                config.height ? iScreen.height =  config.height : iScreen.height =  dScreen.height;
-                config.loop ? iScreen.loop =  config.loop : iScreen.loop =  dScreen.loop;
-                config.windowless ? iScreen.windowless =  config.windowless : iScreen.windowless =  dScreen.windowless;
-                config.toolbar ? iScreen.toolbar =  config.toolbar : iScreen.toolbar =  dScreen.toolbar;
-                config.autoplay ? iScreen.autoplay =  config.autoplay : iScreen.autoplay =  dScreen.autoplay;
-                config.bg ? iScreen.background =  config.bg : iScreen.background =  dScreen.background;
-                config.ad_state ? iScreen.ad_state =  config.ad_state : iScreen.ad_state =  dScreen.ad_state;
-                config.ad_link ? iScreen.ad_link =  config.ad_link : iScreen.ad_link =  dScreen.ad_link;
-                config.ad_time ? iScreen.ad_time =  config.ad_time : iScreen.ad_time =  dScreen.ad_time;
-                iScreen.ad_state ? iScreen.ad_isView =  dScreen.ad_isView : iScreen.ad_isView =  true;
-                iScreen.type == 'http' ? iScreen.plugin =  dScreen.plugin : iScreen.plugin =  null;
-            }
-            else{
-                hOptions.init = hOptions.defaults;
-            }
-            !+"\v1" ? hOptions.init.browser = 'ie' : hOptions.init.browser = hOptions.defaults.browser;
-        },
-        initApi:function(){
-            hApi = API();
-            return hApi;
-        },
-        initInterface:function() {
-          var _PlayerContiner = '<div id="' + hInterface.n_screen + '">' +
-                                     '<div id="' + hInterface.n_plugin + '"></div>' +
-                                '</div>' +
-                                '<div id="' + hInterface.n_toolbar + '"></div>';
-
-          hInterface.e_main.html('');
-          hInterface.e_main.append(_PlayerContiner);
-
-          var _controlContiner = '<div class="playerControl"></div>' +
-                                 '<div class="playerInfo"></div>' +
-                                 '<div class="playerConfig"></div>';
-          var _volume = '<div id="player-volume"></div>';
-          var _toolbar = $('#' + hInterface.n_toolbar);
-
-          _toolbar.append(_controlContiner);
-            hPlugin.createButton('playerControl', 'Проигрование / Пауза', 'ico-play', function(event) {hPlugin.play();});
-            hPlugin.createButton('playerControl', 'Остановить', 'ico-stop', function(event) {hPlugin.stop();});
-            hPlugin.createButton('playerControl', 'Громкость', 'ico-volume-up', function(event) {hPlugin.mute();});
-          $('.playerControl').append(_volume);
-            hPlugin.createButton('playerConfig', 'Настройки', 'ico-cogs', function(event) {hPlugin.config();});
-            hPlugin.createButton('playerConfig', 'На весь экран', 'ico-fullscreen', function(event) {hPlugin.fullscreen();});
-            hPlugin.volumeSlider();
-        },
-        initPlugin:function() {
-            var hScreen = hOptions.init;
-            var element, el = document.getElementById(hInterface.n_plugin);
-            if (el) {
-                if (hOptions.init.browser == 'ie') {
-                    var att = '';
-                    var par = '';
-                    att += 'id="' + hInterface.n_plugin + '"';
-                    att += 'bgcolor="' + hScreen.background + '"';
-                    att += 'toolbar="' + hScreen.toolbar + '"';
-                    att += 'loop="' + hScreen.loop + '"';
-                    att += 'windowless="' + hScreen.windowless + '"';
-                    att += 'autoplay="' + hScreen.autoplay + '"';
-                    par += '<param name="id" value="' + hInterface.n_plugin + '" />';
-                    par += '<param name="bgcolor" value="' + hScreen.background + '" />';
-                    par += '<param name="width" value="' + hScreen.width + '" />';
-                    par += '<param name="height" value="' + hScreen.height + '" />';
-                    par += '<param name="toolbar" value="' + hScreen.toolbar + '" />';
-                    par += '<param name="loop" value="' + hScreen.loop + '" />';
-                    par += '<param name="windowless" value="' + hScreen.windowless + '" />';
-                    par += '<param name="autoplay" value="' + hScreen.autoplay + '" />';
-                    el.outerHTML = '<object classid="'+ hScreen.plugin.classid +'"' +
-                        att +
-                        'codebase="http://download.videolan.org/pub/videolan/vlc/last/win32/axvlc.cab">' +
-                        par +
-                        '</object>';
-                    element = document.getElementById(hInterface.n_plugin);
-
-                }
-                else {
-                    var AXO = document.createElement('object');
-                        AXO.setAttribute("id", hInterface.n_plugin);
-                        AXO.setAttribute("type", hScreen.plugin.MimeType);
-                        AXO.setAttribute("bgcolor", hScreen.background);
-                        AXO.setAttribute("width", hScreen.width);
-                        AXO.setAttribute("height", hScreen.height);
-                        AXO.setAttribute("toolbar", hScreen.toolbar);
-                        if(hScreen.loop){AXO.setAttribute("loop", hScreen.loop);}
-                        if(hScreen.windowless){ AXO.setAttribute("windowless", hScreen.windowless);}
-                        if(hScreen.autoplay){AXO.setAttribute("autoplay", hScreen.autoplay);}
-                    el.parentNode.replaceChild(AXO, el);
-                    element = AXO;
-                }
-            }
-            return element;
+        control: function (d, c) {
+            this.init(null, c);
+            a.__control(d)
         }
     }
 }();
